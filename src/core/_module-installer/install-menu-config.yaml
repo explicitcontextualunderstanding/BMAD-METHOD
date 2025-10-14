@@ -8,7 +8,7 @@ prompt:
 # This is injected into the custom agent activation rules
 user_name:
   prompt: "What is your name?"
-  default: "BMad User"
+  default: "amazon1148"
   result: "{value}"
 
 # This is injected into the custom agent activation rules
