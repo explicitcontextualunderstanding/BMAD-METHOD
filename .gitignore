@@ -60,3 +60,4 @@ tools/template-test-generator/test-scenarios/
 # Test Install Output
 
 z*/
+exports/*
