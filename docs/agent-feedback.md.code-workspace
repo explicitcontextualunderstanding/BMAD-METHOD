@@ -1,0 +1,29 @@
+{
+  "folders": [
+    {
+      "path": "..",
+    },
+    {
+      "name": "SurfSense",
+      "path": "../../SurfSense",
+    },
+    {
+      "name": "Fundamentals_of_Accelerated_Computing_with_CUDA_Python",
+      "path": "../../Fundamentals_of_Accelerated_Computing_with_CUDA_Python",
+    },
+    {
+      "name": "crystal",
+      "path": "../../crystal",
+    },
+    {
+      "path": "../../cipher",
+    },
+    {
+      "name": "zen-mcp-server",
+      "path": "../../zen-mcp-server",
+    },
+    {
+      "path": "../../nanosaur",
+    },
+  ],
+}
