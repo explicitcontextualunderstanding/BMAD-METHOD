@@ -7,6 +7,14 @@
 
 ---
 
+> **Disclaimer: Internal Document**
+>
+> This document is an internal case study analyzing how the Breakthrough Method for Agile Development (BMAD) was applied to the OpenVLA project. It is intended for methodology refinement and process improvement discussions only.
+>
+> It is **not** part of the core OpenVLA project plan. For all authoritative project requirements, architecture, and technical specifications, please refer to the documents in the `/docs` and `/research` directories.
+>
+> ---
+
 ## Executive Summary
 
 This document provides a comprehensive assessment of how the Breakthrough Method for Agile Development (BMAD) was applied to create the OpenVLA project artifacts. This analysis demonstrates the BMAD methodology's effectiveness through a concrete case study, showing how internal engineering processes generate high-quality project deliverables.

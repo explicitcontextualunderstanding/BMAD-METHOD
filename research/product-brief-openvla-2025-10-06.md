@@ -2,9 +2,15 @@
 
 **Date:** 2025-10-06
 **Author:** User
-**Status:** Draft for PM Review
+**Status:** Version 1.0
 
 ---
+
+> **DEPRECATION NOTICE**
+>
+> This Product Brief has been superseded by the **Product Requirements Document (PRD)**. The PRD is the single source of truth for all business goals, user requirements, and success metrics. Please refer to `docs/PRD-openvla.md` for the most current and authoritative information.
+>
+> ---
 
 ## Executive Summary
 
@@ -33,17 +39,17 @@ Existing approaches either offload inference to the cloud—incurring unacceptab
 An end-to-end tuning pipeline and deployment framework that adapts reference VLA models for the edge via:
 
 1. **Baseline Profiling & Budgeting:** Establish performance and resource-use baselines.
-2. **INT4 Quantization with CUTLASS:** Lead with structured INT4 kernels (CUTLASS + TensorRT) as the primary optimization path, budgeting additional R&D cycles to close the ~5% accuracy gap observed in prior work.
-3. **FP8/FP16 Backstops:** Maintain FP8/FP16 artifacts as validated fallbacks when INT4 regressions exceed thresholds.
-4. **2:4 Structured Sparsity:** Target supported transformer blocks for pruning.
-5. **TensorRT Mixed-Precision Engines:** Create optimized engines with layer fusion.
-6. **Multi-Stage Tuning:** Execute on-device LoRA rank sweeps followed by cloud full fine-tuning on rented multi-GPU nodes to reclaim accuracy.
-7. **Super Mode Activation:** Utilize Jetson Orin Nano's peak performance mode.
-8. **KV-Cache Management:** Implement chunked context to manage memory.
-9. **Containerized Deployment:** Deliver the solution in a JetPack 6.2.1-based container.
-10. **CUTLASS-Accelerated Kernels:** Use custom kernels for INT4/FP16 hotspots.
-11. **Comprehensive Profiling & Stress Testing:** Ensure reliability and performance.
-12. **Control Fallback Logic:** Implement a repeat-last-action safeguard when inference deadlines are missed, with diagnostics for replay counts.
+   **FP8 Quantization as the Primary Path:** The V1.0 MVP will focus on delivering a robust and accurate FP8 quantized model. This provides a significant performance uplift while balancing development risk.
+   **INT4 as a Research Spike:** Achieving high accuracy with INT4 quantization is a significant challenge. This will be treated as a formal, time-boxed research spike. If successful, it will be integrated into a future release; otherwise, the project will proceed with FP8 as the primary deliverable.
+2. **2:4 Structured Sparsity:** Target supported transformer blocks for pruning.
+3. **TensorRT Mixed-Precision Engines:** Create optimized engines with layer fusion.
+4. **Multi-Stage Tuning:** Execute on-device LoRA rank sweeps followed by cloud full fine-tuning on rented multi-GPU nodes to reclaim accuracy.
+5. **Super Mode Activation:** Utilize Jetson Orin Nano's peak performance mode.
+6. **KV-Cache Management:** Implement chunked context to manage memory.
+7. **Containerized Deployment:** Deliver the solution in a JetPack 6.2.1-based container.
+8. **CUTLASS-Accelerated Kernels:** Use custom kernels for INT4/FP16 hotspots.
+9. **Comprehensive Profiling & Stress Testing:** Ensure reliability and performance.
+10. **Control Fallback Logic:** Implement a repeat-last-action safeguard when inference deadlines are missed, with diagnostics for replay counts.
 
 ---
 
@@ -148,7 +154,7 @@ A comprehensive catalog of edge-ready VLA variants (from 450M to 7B parameters),
 ### Platform Requirements
 
 - **Hardware:** NVIDIA Jetson Orin Nano Super (JetPack 6.2.1).
-- **Cloud GPUs:** A10G/A100/H100 for training and optimization.
+  **Staged Ampere -> Hopper Workflow:** To manage costs effectively, the project will use a staged GPU strategy. Primary development, profiling, and optimization will be conducted on cost-effective Ampere-architecture GPUs (e.g., A4000/A5000). The more powerful and expensive Hopper-architecture GPUs (e.g., H200) will be reserved for intermittent, time-boxed scale testing and final validation.
 - **OS:** Ubuntu 22.04 L4T.
 - **Power:** ≤25 W in Super Mode.
 

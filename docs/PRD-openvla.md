@@ -47,7 +47,7 @@ _A warehouse logistics operator needs to re-route a package. They speak into the
 
 #### **Deliverable: Optimized OpenVLA Variants**
 
-1. **FR-1 (Quantization):** The system shall produce an INT4 quantized version of a baseline VLA model using TensorRT + CUTLASS kernels, while also generating FP8/FP16 fallbacks when INT4 accuracy falls outside agreed thresholds.
+1. **FR-1 (Quantization):** The system shall produce an FP8 quantized version of a baseline VLA model. INT8 is an acceptable fallback, and INT4 is a stretch goal to be pursued only if time permits.
 2. **FR-2 (Sparsity):** The system shall use the NVIDIA TensorRT Model Optimizer to produce a 2:4 structured sparsity version of a baseline VLA model.
 3. **FR-3 (LoRA Adaptation):** The system shall apply a specified LoRA adapter to any VLA model variant to produce a task-specific, fine-tuned version.
 4. **FR-4 (Variant Combination):** The system shall be able to combine the above optimizations.
@@ -95,6 +95,7 @@ _A warehouse logistics operator needs to re-route a package. They speak into the
 #### **Accuracy**
 
 - **NFR-6 (Accuracy Retention):** The task accuracy of the optimized model must be ≥97% of the baseline.
+- **NFR-6.1 (Fallback Accuracy):** In a documented fallback mode (e.g., using a less aggressive quantization level), the task accuracy must be ≥96% of the baseline (i.e., a drop of no more than 4%).
 
 #### **Reliability & Stability**
 

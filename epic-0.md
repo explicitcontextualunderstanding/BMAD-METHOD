@@ -6,6 +6,70 @@
 **MVP Scope**: Complete 4-phase optimization workflow from cloud profiling to edge deployment
 **Blocker Status**: This is a blocker for all other epics
 
+---
+
+### Story 0.0: Spike: DLA Compatibility and Performance Validation
+
+**Title**: Spike: DLA Compatibility and Performance Validation
+**Priority**: Blocker
+**Story Points**: 8
+**Owner**: Tech Lead
+**As a** Tech Lead
+**I want** to conduct a phased investigation into offloading the `PrismaticVisionBackbone` to the DLA
+**So that** we can make a data-driven "go/no-go" decision on using DLA for the V1.0 release.
+
+**Acceptance Criteria**:
+
+- [ ] A formal DLA validation report is delivered that provides a data-driven go/no-go recommendation for DLA offloading in V1.0.
+- [ ] The report quantifies the projected performance uplift (e.g., `[X]%` latency reduction), the engineering cost (e.g., `[Z]` days for model modification), and the measured accuracy impact.
+
+**Phased Investigation Plan**:
+
+**Methodology & Tools**
+This investigation will be conducted on a physical Jetson Orin Nano device using:
+
+- **`trtexec`**: For initial feasibility and performance testing.
+- **NVIDIA Nsight Systems (`nsys`)**: For system-wide profiling and concurrency analysis.
+- **ONNX-GraphSurgeon**: For modifying the ONNX graph to replace incompatible layers.
+- **TensorRT Python API**: For programmatic engine building and management.
+
+**Phase 1: Foundational Feasibility (Go/No-Go)**
+
+1.  **Verify DLA Hardware Accessibility**: Confirm the DLA is visible and accessible by running a known-compatible model with `trtexec --useDLACore=0`.
+2.  **Analyze "Out-of-the-Box" Compatibility**: Isolate the `PrismaticVisionBackbone`, export to ONNX, and use `trtexec --verbose` to determine the percentage of the model that is automatically offloaded to the DLA.
+3.  **Identify Fallback Operators**: Create a definitive list of all layers/operators that are not supported by the DLA and fall back to the GPU.
+4.  **Confirm Precision Constraints**: Validate the DLA's supported precisions (INT8, FP16) against the project's quantization targets (FP8, INT4) using `trtexec` and official documentation.
+
+**Phase 2: Quantitative Performance Analysis** 5. **Measure Performance Uplift**: Benchmark latency and throughput in three modes: GPU-only, DLA with GPU Fallback, and DLA-only. 6. **Validate True Concurrency**: Use Nsight Systems (`nsys`) to profile a test script running the DLA `VisionBackbone` and a separate GPU kernel simultaneously. Analyze the timeline to confirm overlapping execution. 7. **Assess Power and Thermal Impact**: Log `tegrastats` during a sustained run to compare power draw and temperatures of a DLA-enabled pipeline vs. a GPU-only pipeline. 8. **Measure Accuracy Impact**: Compare the output tensors of the DLA-offloaded `VisionBackbone` to a golden set from a GPU FP32 run. Feed the DLA features into the full pipeline to measure the end-to-end accuracy impact.
+
+**Phase 3: Engineering & Implementation Effort** 9. **Estimate Model Modification Effort**: For each incompatible operator, research DLA-compatible alternatives and estimate the engineering effort to replace them using ONNX-GraphSurgeon. 10. **Estimate Accuracy Recovery Cost**: If model modification is required, determine if a fine-tuning pass is needed to recover accuracy and estimate the time required. 11. **Measure IPC and Engine Management Overhead**: Build a minimal proof-of-concept with two separate engines (DLA and GPU) and use Nsight Systems to measure the latency overhead of passing data between them.
+
+**Definition of Done**: The DLA validation report is published, reviewed, and a formal go/no-go decision is recorded by the project leadership. No further stories in Epic 0 can start until this is complete.
+
+---
+
+### Story 0.5: ROS 2 Integration Spike
+
+**Title**: Spike: Validate ROS 2 Network Bridge
+**Priority**: High
+**Story Points**: 3
+**Owner**: ML Engineer
+**As a** Robotics Engineer
+**I want** to create a minimal "hello world" ROS 2 container on the OpenVLA Jetson
+**So that** I can validate the network bridge and basic topic communication with the existing robotics stack early.
+
+**Acceptance Criteria**:
+
+- [ ] A new Docker container is created for the OpenVLA Jetson.
+- [ ] The container includes a simple Python-based ROS 2 node.
+- [ ] The node successfully subscribes to a standard topic (e.g., `/clock`) published by the main robotics Jetson.
+- [ ] The node successfully publishes a simple message to a new topic (e.g., `/openvla_status`) that can be seen by the main robotics Jetson.
+- [ ] The network configuration (IP addresses, ROS_DOMAIN_ID) required for communication is documented.
+
+**Definition of Done**: A demonstration video and a short document showing successful two-way communication between the two Jetson Nanos over the 1GB ethernet connection is shared with the team.
+
+---
+
 **Epic Owner**: DevOps Lead
 **Sprint**: Sprint 0 (Weeks 1-2)
 **Learning-Enhanced**: Yes - NVIDIA DLI courses integrated
@@ -38,52 +102,34 @@
 **Learning Component**: Multi-GPU Programming and Optimization with NVIDIA CUDA + Free CUDA Fundamentals, [Fundamentals of Accelerated Computing with CUDA Python](https://learn.nvidia.com/courses/course-detail?course_id=course-v1:DLI+C-AC-02+V1)
 [GitHub Repository](https://github.com/w3hbi/Fundamentals_of_Accelerated_Computing_with_CUDA_Python.git)
 **As a** ML Engineer
-**I want** to access a staged GPU environment starting with cost-effective A5000 development, then scaling to H200 production
-**So that** I can progressively optimize OpenVLA with cost-controlled development and production-ready deployment
+**I want** to access a staged GPU environment starting with cost-effective A4000/A5000 development, reserving H200 for scale validation
+**So that** I can progressively optimize OpenVLA with a budget-conscious workflow.
 
 **Updated Acceptance Criteria**:
 
-- [ ] **Week 1**: 1× NVIDIA A5000 (CUDO) provisioned: 24 GiB VRAM, 6 CPUs, 24 GiB RAM, $0.59/hr
-- [ ] **Week 2**: 2× NVIDIA A5000 (CUDO) scaled: 24 GiB VRAM each, 12 CPUs, 48 GiB RAM, $1.16/hr
-- [ ] **Production**: 8× NVIDIA H200 cloud cluster provisioned on Brev.dev BOOSTRUN platform
-- [ ] A5000 Ampere architecture matches Jetson Orin Nano Super for performance translation
-- [ ] A5000 environments validate model loading and container builds before H200 scaling
-- [ ] H200 configuration: 8× H200 GPUs (141 GiB VRAM each), 2 TiB system RAM, 30 TiB SSD, SXM5 form factor
-- [ ] Both A5000 and H200 environments have Brev sandbox preconfigured with Python, CUDA, Docker, Jupyter
-- [ ] Multi-GPU programming patterns work across A5000 and H200 architectures
-- [ ] CUDA 12.1+ environment optimized for both A5000 and H200 performance characteristics
-- [ ] OpenVLA-7B model loads successfully on A5000 (24 GiB VRAM) and H200 (141 GiB VRAM)
-- [ ] All required Python dependencies are pre-installed for both GPU architectures
-- [ ] Development environment accessible within 30 minutes of GPU cluster launch
-- [ ] Environments are version-locked and reproducible using Brev launchables
-- [ ] Cost optimization implemented: A5000 ($0.59-$1.16/hr) and H200 ($23.52/hr) monitoring
-- [ ] **NEW**: Team has completed CUDA optimization training for both Ampere and H200 architectures
-- [ ] **NEW**: Team has completed GPU profiling and optimization training
+- [ ] **Week 1**: 1x NVIDIA A4000 (Ampere) provisioned: 16 GiB VRAM, 4 CPUs, 16 GiB RAM, ~$0.19/hr.
+- [ ] **Week 2**: 2x NVIDIA A5000 (Ampere) scaled for multi-GPU testing: 24 GiB VRAM each, 12 CPUs, 48 GiB RAM, ~$0.60/hr.
+- [ ] **Validation**: Access to an 8x H200 cloud cluster is reserved for intermittent scale-testing, not continuous development.
+- [ ] The Ampere architecture of the A4000/A5000 matches the Jetson Orin Nano for consistent performance tuning.
+- [ ] All development, profiling, and initial optimization are performed on the cost-effective Ampere GPUs.
+- [ ] Cost monitoring is implemented with alerts for the A4000/A5000 environments.
+- [ ] **NEW**: Team has completed CUDA optimization training relevant to the Ampere architecture.
 
 **Updated Tasks**:
 
-- [ ] **Learning**: [Complete "An Even Easier Introduction to CUDA" (1 hr) - FREE](https://colab.research.google.com/github/NVDLI/notebooks/blob/master/even-easier-cuda/An_Even_Easier_Introduction_to_CUDA.ipynb#scrollTo=vuOcUi0fvogW)
-- [ ] **Learning**: Complete "Fundamentals of Accelerated Computing with CUDA Python"(https://learn.nvidia.com/courses/course-detail?course_id=course-v1:DLI+C-AC-02+V1) (8 hrs)
-- [ ] **Learning**: Complete "Optimizing CUDA ML Codes With Nsight's Profiling Tools" (4 hrs)
-- [ ] **Learning**: Complete "Find the Bottleneck—Optimize AI Pipelines With Nsight Systems" (2 hrs)
-- [ ] Set up Brev.dev account and configure BOOSTRUN platform access
-- [ ] **Week 1**: Provision 1× NVIDIA A5000 (CUDO): 24 GiB VRAM, 6 CPUs, 24 GiB RAM, $0.59/hr
-- [ ] **Week 2**: Scale to 2× NVIDIA A5000 for CI/CD and multi-GPU benchmarking
-- [ ] Configure CUDO A5000 environments with Python, CUDA, Docker, Jupyter Notebooks
-- [ ] Validate OpenVLA-7B model loading on A5000 with 24 GiB VRAM
-- [ ] Test Ampere architecture optimization matching Jetson Orin Nano Super
-- [ ] **Production**: Provision 8× NVIDIA H200 cluster for final optimization
-- [ ] Configure A5000 and H200 CUDA optimizations and multi-GPU programming patterns
-- [ ] Apply Nsight profiling across both A5000 and H200 environments
-- [ ] Create GPU-agnostic Docker images compatible with both architectures
-- [ ] Pre-load OpenVLA-7B models optimized for both VRAM configurations
-- [ ] Configure Brev CLI integration for both A5000 and H200 environments
-- [ ] Test OpenVLA workloads on both A5000 and H200 clusters
-- [ ] Create cost monitoring: A5000 ($0.59-$1.16/hr) and H200 ($23.52/hr) with alerts
-- [ ] Create comprehensive documentation for both GPU environments
+- [ ] **Learning**: Complete "An Even Easier Introduction to CUDA" (1 hr) - FREE
+- [ ] **Learning**: Complete "Fundamentals of Accelerated Computing with CUDA Python" (8 hrs)
+- [ ] Set up Brev.dev account and configure access to Ampere-based instances.
+- [ ] **Week 1**: Provision 1x NVIDIA A4000 instance.
+- [ ] **Week 2**: Scale to a 2x NVIDIA A5000 instance for multi-GPU work.
+- [ ] Configure Ampere environments with Python, CUDA, Docker, and Jupyter.
+- [ ] Validate OpenVLA-7B model loading on the A5000 with 24 GiB VRAM.
+- [ ] Reserve H200 cluster for specific, time-boxed validation tasks.
+- [ ] Create cost monitoring dashboards for the Ampere environments with budget alerts.
+- [ ] Create comprehensive documentation for the staged GPU environment.
 
-**Learning Dependencies**: Must complete CUDA and optimization courses before GPU environment implementation
-**Definition of Done**: Team members can access both A5000 development and H200 production environments, with cost-effective development workflow and optimized PyTorch/TensorRT operations.
+**Learning Dependencies**: Must complete CUDA courses before GPU environment implementation.
+**Definition of Done**: Team members can access both single and multi-GPU Ampere environments for development, with a clear process for escalating to H200 for validation.
 
 ---
 
@@ -131,6 +177,13 @@
 
 **Learning Dependencies**: Must complete NGC container course before implementation
 **Definition of Done**: All team members can build and run the NVIDIA-optimized development container successfully.
+
+---
+
+**Note on Container Hierarchy:** This story is responsible for creating the `base-dev` container. Subsequent stories will build upon this base to create more specialized containers:
+
+- **Story 6** will use this base to package the optimized model into an `optimized-model` container.
+- **Story 11** will use the `optimized-model` container to create the final `deployment` container with the ROS 2 service.
 
 ---
 
@@ -289,7 +342,8 @@
 **Acceptance Criteria**:
 
 - [ ] **Phase 2.1**: Iterative Quantization & Pruning Implemented
-  - [ ] FP8/INT8 quantization applied using NVIDIA TensorRT Model Optimizer
+  - [ ] FP8 quantization is applied as the primary target using the NVIDIA TensorRT Model Optimizer.
+  - [ ] INT8 is validated as an acceptable fallback if FP8 accuracy targets are not met.
   - [ ] 2:4 structured sparsity applied to compatible layers (Linear, Conv2D)
   - [ ] Immediate accuracy validation after each compression step
   - [ ] RoboVQA/VLA-Bench validation dataset integration completed
@@ -330,6 +384,7 @@
 
 **Implementation Tasks**:
 
+- [ ] **NEW (Research Spike)**: Within the first week of the sprint, conduct a time-boxed research spike to validate the availability of pre-trained LoRA adapters for the target robotics tasks. The output will be a go/no-go decision for using LoRA in V1.0 or a formal estimate for a separate training epic.
 - [ ] Implement NVIDIA activation-aware quantization pipeline
 - [ ] Apply 2:4 structured sparsity with Sparse Tensor Core optimization
 - [ ] Create automated accuracy validation pipeline
@@ -500,7 +555,7 @@
 **I want** an environment validation suite
 **So that** I can verify my environment is correctly configured
 
-**Updated Acceptance Criteria**:
+**Acceptance Criteria**:
 
 - [ ] Environment validation tests are implemented
 - [ ] All dependencies are checked for correct versions
@@ -510,7 +565,6 @@
 - [ ] Validation results are clearly reported with H200 performance metrics
 - [ ] Validation can run automatically on Brev.dev BOOSTRUN platform
 - [ ] Validation failures provide helpful error messages for H200 configuration
-- [ ] **NEW**: Validation includes H200-specific GPU profiling capabilities
 - [ ] **NEW**: Team has reviewed GPU profiling sessions for H200 optimization
 
 **Updated Tasks**:
@@ -574,6 +628,7 @@
 
 **Implementation Tasks**:
 
+- [ ] **NEW (POC)**: Before full implementation, create a minimal proof-of-concept to validate the performance of the multi-process architecture. Measure IPC latency and context switching overhead.
 - [ ] Create optimized Jetson Orin Nano container with TensorRT engines
 - [ ] Implement CUDA Multi-Process Service configuration
 - [ ] Develop multi-process inference service architecture
@@ -592,23 +647,30 @@
 
 ---
 
+**Note on ROS 2 Integration:** Due to the potential for subtle issues when combining ROS 2 with GPU containerization and real-time constraints, additional buffer time should be allocated for debugging and integration challenges.
+
+---
+
 ## Updated Sprint Planning
 
-### Pre-Sprint 0 (Week -1): Foundation Learning
+### Pre-Sprint 0 (Week 0): Foundational Learning
+
+This week is dedicated to completing the most critical, foundational NVIDIA DLI courses before the main development sprint begins.
 
 ```yaml
-week_minus_1_learning:
-  monday_wednesday:
-    - 'Fundamentals of Accelerated Computing with CUDA Python (4 hrs)'
+pre_sprint_learning:
+  focus: 'Core CUDA and Deep Learning Fundamentals'
+  courses:
+    - 'Fundamentals of Accelerated Computing with CUDA Python (8 hrs)'
     - 'Deep Learning I: Fundamentals of Deep Learning (3 hrs)'
-
   deliverables:
-    - 'Team completes CUDA fundamentals'
-    - 'Team understands deep learning basics'
-    - 'Learning certificates obtained'
+    - 'Team completes foundational training.'
+    - 'Learning certificates obtained.'
 ```
 
-### Sprint 0, Week 1: A5000 Development Environment + Learning
+### Sprint 0 (Weeks 1-4): Core Development and Integrated Learning
+
+This 4-week sprint covers the core development work, with additional, more specialized learning integrated directly into the stories.
 
 ```yaml
 sprint_0_week_1:
