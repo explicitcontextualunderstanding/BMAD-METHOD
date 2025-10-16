@@ -29,36 +29,163 @@ print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# Check if evidence file provided
-if [ $# -eq 0 ]; then
-    print_error "Usage: $0 <evidence-file.txt>"
-    print_error "Example: $0 evidence-macbook-20251016-143022.txt"
-    exit 1
-fi
+# Function to extract section from evidence file
+extract_section() {
+    local section="$1"
+    sed -n "/^=== $section ===/,/^===/p" "$EVIDENCE_FILE" | sed '1d;$d' | sed '$d'
+}
 
-EVIDENCE_FILE="$1"
+# Function to analyze security-sensitive files
+analyze_security() {
+    print_status "Analyzing security-sensitive files..."
+    {
+        echo "=== SECURITY-SENSITIVE FILES ANALYSIS ==="
+        local security_files
+        security_files=$(extract_section "SECURITY-SENSITIVE FILES")
 
-if [ ! -f "$EVIDENCE_FILE" ]; then
-    print_error "Evidence file not found: $EVIDENCE_FILE"
-    exit 1
-fi
+        if echo "$security_files" | grep -q "No.*found"; then
+            echo "STATUS: ✅ No security files found (Good)"
+            echo "RECOMMENDATION: Add preventive .gitignore rules for *.key, *.pem, *.crt"
+        else
+            echo "STATUS: ⚠️  Security files found!"
+            echo "$security_files"
+            echo "RECOMMENDATION: These files MUST be ignored"
+        fi
+        echo ""
+    } >> "$ANALYSIS_FILE"
+}
 
-# Extract hostname from evidence file
-HOSTNAME=$(grep "Hostname:" "$EVIDENCE_FILE" | cut -d' ' -f2)
-TIMESTAMP=$(grep "Timestamp:" "$EVIDENCE_FILE" | cut -d' ' -f2)
+# Function to analyze AI assistant files
+analyze_ai_assistants() {
+    print_status "Analyzing AI assistant files..."
+    {
+        echo "=== AI ASSISTANT FILES ANALYSIS ==="
+        local ai_files
+        ai_files=$(extract_section "AI ASSISTANT FILES")
 
-print_status "Analyzing evidence from $HOSTNAME"
-print_status "Evidence file: $EVIDENCE_FILE"
+        if echo "$ai_files" | grep -q "No.*found"; then
+            echo "STATUS: ✅ No AI assistant files found"
+            echo "RECOMMENDATION: No AI assistant .gitignore rules needed"
+        else
+            echo "STATUS: ⚠️  AI assistant files found"
+            echo "$ai_files"
+            echo "RECOMMENDATION: These are machine-specific and should be ignored"
+        fi
+        echo ""
+    } >> "$ANALYSIS_FILE"
+}
 
-# Create analysis file
-ANALYSIS_FILE="analysis-${HOSTNAME}-${TIMESTAMP}.txt"
-GITIGNORE_FILE="gitignore-${HOSTNAME}-${TIMESTAMP}.txt"
+# Function to analyze temporary/cache files
+analyze_temp_files() {
+    print_status "Analyzing temporary and cache files..."
+    {
+        echo "=== TEMPORARY/CACHE FILES ANALYSIS ==="
+        local temp_files
+        temp_files=$(extract_section "TEMPORARY AND CACHE FILES")
 
-print_status "Analysis will be saved to: $ANALYSIS_FILE"
-print_status "Gitignore recommendations: $GITIGNORE_FILE"
+        if echo "$temp_files" | grep -q "No.*found"; then
+            echo "STATUS: ✅ No temporary files found"
+            echo "RECOMMENDATION: Clean environment"
+        else
+            echo "STATUS: ⚠️  Temporary files found"
+            echo "$temp_files"
+            echo "RECOMMENDATION: These should be ignored"
+        fi
+        echo ""
+    } >> "$ANALYSIS_FILE"
+}
 
-# Initialize analysis file
-cat > "$ANALYSIS_FILE" << EOF
+# Function to analyze environment-specific files
+analyze_environment_specific() {
+    print_status "Analyzing environment-specific files..."
+    {
+        echo "=== ENVIRONMENT-SPECIFIC FILES ANALYSIS ==="
+        local env_files
+        env_files=$(extract_section "ENVIRONMENT-SPECIFIC FILES")
+
+        if echo "$env_files" | grep -q "No.*found"; then
+            echo "STATUS: ✅ No environment-specific files found"
+            echo "RECOMMENDATION: Clean cross-platform environment"
+        else
+            echo "STATUS: ⚠️  Environment-specific files found"
+            echo "$env_files"
+            echo "RECOMMENDATION: These should be ignored"
+        fi
+        echo ""
+    } >> "$ANALYSIS_FILE"
+}
+
+# Function to analyze build artifacts
+analyze_build_artifacts() {
+    print_status "Analyzing build artifacts..."
+    {
+        echo "=== BUILD ARTIFACTS ANALYSIS ==="
+        local build_files
+        build_files=$(extract_section "BUILD ARTIFACTS")
+
+        if echo "$build_files" | grep -q "No.*found"; then
+            echo "STATUS: ✅ No build artifacts found"
+            echo "RECOMMENDATION: Clean build state"
+        else
+            echo "STATUS: ⚠️  Build artifacts found"
+            echo "$build_files"
+            echo "RECOMMENDATION: These should be ignored"
+        fi
+        echo ""
+    } >> "$ANALYSIS_FILE"
+}
+
+# Function to analyze IDE files
+analyze_ide_files() {
+    print_status "Analyzing IDE and editor files..."
+    {
+        echo "=== IDE/EDITOR FILES ANALYSIS ==="
+        local ide_files
+        ide_files=$(extract_section "IDE AND EDITOR FILES")
+
+        if echo "$ide_files" | grep -q "No.*found"; then
+            echo "STATUS: ✅ No IDE-specific files found"
+            echo "RECOMMENDATION: Clean environment"
+        else
+            echo "STATUS: ⚠️  IDE-specific files found"
+            echo "$ide_files"
+            echo "RECOMMENDATION: These are machine-specific and should be ignored"
+        fi
+        echo ""
+    } >> "$ANALYSIS_FILE"
+}
+
+main() {
+    # Check if evidence file provided
+    if [ $# -eq 0 ]; then
+        print_error "Usage: $0 <evidence-file.txt>"
+        print_error "Example: $0 evidence-macbook-20251016-143022.txt"
+        exit 1
+    fi
+
+    EVIDENCE_FILE="$1"
+
+    if [ ! -f "$EVIDENCE_FILE" ]; then
+        print_error "Evidence file not found: $EVIDENCE_FILE"
+        exit 1
+    fi
+
+    # Extract hostname from evidence file
+    HOSTNAME=$(grep "Hostname:" "$EVIDENCE_FILE" | cut -d' ' -f2)
+    TIMESTAMP=$(grep "Timestamp:" "$EVIDENCE_FILE" | cut -d' ' -f2)
+
+    print_status "Analyzing evidence from $HOSTNAME"
+    print_status "Evidence file: $EVIDENCE_FILE"
+
+    # Create analysis file
+    ANALYSIS_FILE="analysis-${HOSTNAME}-${TIMESTAMP}.txt"
+    GITIGNORE_FILE="gitignore-${HOSTNAME}-${TIMESTAMP}.txt"
+
+    print_status "Analysis will be saved to: $ANALYSIS_FILE"
+    print_status "Gitignore recommendations: $GITIGNORE_FILE"
+
+    # Initialize analysis file
+    cat > "$ANALYSIS_FILE" << EOF
 ========================================
 BMAD-METHOD Evidence Analysis Report
 ========================================
@@ -69,124 +196,18 @@ Analysis Date: $(date)
 
 EOF
 
-# Function to extract section from evidence file
-extract_section() {
-    local section="$1"
-    sed -n "/^=== $section ===/,/^===/p" "$EVIDENCE_FILE" | sed '1d;$d' | sed '$d'
-}
+    # Run all analysis functions
+    analyze_security
+    analyze_ai_assistants
+    analyze_temp_files
+    analyze_environment_specific
+    analyze_build_artifacts
+    analyze_ide_files
 
-# Analyze security-sensitive files
-print_status "Analyzing security-sensitive files..."
-{
-    echo "=== SECURITY-SENSITIVE FILES ANALYSIS ==="
+    # Generate gitignore recommendations
+    print_status "Generating .gitignore recommendations..."
 
-    local security_files=$(extract_section "SECURITY-SENSITIVE FILES")
-
-    if echo "$security_files" | grep -q "No.*found"; then
-        echo "STATUS: ✅ No security files found (Good)"
-        echo "RECOMMENDATION: Add preventive .gitignore rules for *.key, *.pem, *.crt"
-    else
-        echo "STATUS: ⚠️  Security files found!"
-        echo "$security_files"
-        echo "RECOMMENDATION: These files MUST be ignored"
-    fi
-    echo ""
-} >> "$ANALYSIS_FILE"
-
-# Analyze AI assistant files
-print_status "Analyzing AI assistant files..."
-{
-    echo "=== AI ASSISTANT FILES ANALYSIS ==="
-
-    local ai_files=$(extract_section "AI ASSISTANT FILES")
-
-    if echo "$ai_files" | grep -q "No.*found"; then
-        echo "STATUS: ✅ No AI assistant files found"
-        echo "RECOMMENDATION: No AI assistant .gitignore rules needed"
-    else
-        echo "STATUS: ⚠️  AI assistant files found"
-        echo "$ai_files"
-        echo "RECOMMENDATION: These are machine-specific and should be ignored"
-    fi
-    echo ""
-} >> "$ANALYSIS_FILE"
-
-# Analyze temporary/cache files
-print_status "Analyzing temporary and cache files..."
-{
-    echo "=== TEMPORARY/CACHE FILES ANALYSIS ==="
-
-    local temp_files=$(extract_section "TEMPORARY AND CACHE FILES")
-
-    if echo "$temp_files" | grep -q "No.*found"; then
-        echo "STATUS: ✅ No temporary files found"
-        echo "RECOMMENDATION: Clean environment"
-    else
-        echo "STATUS: ⚠️  Temporary files found"
-        echo "$temp_files"
-        echo "RECOMMENDATION: These should be ignored"
-    fi
-    echo ""
-} >> "$ANALYSIS_FILE"
-
-# Analyze environment-specific files
-print_status "Analyzing environment-specific files..."
-{
-    echo "=== ENVIRONMENT-SPECIFIC FILES ANALYSIS ==="
-
-    local env_files=$(extract_section "ENVIRONMENT-SPECIFIC FILES")
-
-    if echo "$env_files" | grep -q "No.*found"; then
-        echo "STATUS: ✅ No environment-specific files found"
-        echo "RECOMMENDATION: Clean cross-platform environment"
-    else
-        echo "STATUS: ⚠️  Environment-specific files found"
-        echo "$env_files"
-        echo "RECOMMENDATION: These should be ignored"
-    fi
-    echo ""
-} >> "$ANALYSIS_FILE"
-
-# Analyze build artifacts
-print_status "Analyzing build artifacts..."
-{
-    echo "=== BUILD ARTIFACTS ANALYSIS ==="
-
-    local build_files=$(extract_section "BUILD ARTIFACTS")
-
-    if echo "$build_files" | grep -q "No.*found"; then
-        echo "STATUS: ✅ No build artifacts found"
-        echo "RECOMMENDATION: Clean build state"
-    else
-        echo "STATUS: ⚠️  Build artifacts found"
-        echo "$build_files"
-        echo "RECOMMENDATION: These should be ignored"
-    fi
-    echo ""
-} >> "$ANALYSIS_FILE"
-
-# Analyze IDE files
-print_status "Analyzing IDE and editor files..."
-{
-    echo "=== IDE/EDITOR FILES ANALYSIS ==="
-
-    local ide_files=$(extract_section "IDE AND EDITOR FILES")
-
-    if echo "$ide_files" | grep -q "No.*found"; then
-        echo "STATUS: ✅ No IDE-specific files found"
-        echo "RECOMMENDATION: Clean environment"
-    else
-        echo "STATUS: ⚠️  IDE-specific files found"
-        echo "$ide_files"
-        echo "RECOMMENDATION: These are machine-specific and should be ignored"
-    fi
-    echo ""
-} >> "$ANALYSIS_FILE"
-
-# Generate gitignore recommendations
-print_status "Generating .gitignore recommendations..."
-
-cat > "$GITIGNORE_FILE" << EOF
+    cat > "$GITIGNORE_FILE" << EOF
 # Generated .gitignore based on evidence from $HOSTNAME
 # Generated: $(date)
 # Evidence file: $EVIDENCE_FILE
@@ -209,9 +230,9 @@ bmad/secrets/
 
 EOF
 
-# Add AI assistant rules if found
-if ! extract_section "AI ASSISTANT FILES" | grep -q "No.*found"; then
-    cat >> "$GITIGNORE_FILE" << EOF
+    # Add AI assistant rules if found
+    if ! extract_section "AI ASSISTANT FILES" | grep -q "No.*found"; then
+        cat >> "$GITIGNORE_FILE" << EOF
 
 # ===========================================
 # AI ASSISTANT FILES (MACHINE-SPECIFIC)
@@ -227,11 +248,11 @@ CLAUDE.md
 .gemini/settings.json
 
 EOF
-fi
+    fi
 
-# Add temporary files rules if found
-if ! extract_section "TEMPORARY AND CACHE FILES" | grep -q "No.*found"; then
-    cat >> "$GITIGNORE_FILE" << EOF
+    # Add temporary files rules if found
+    if ! extract_section "TEMPORARY AND CACHE FILES" | grep -q "No.*found"; then
+        cat >> "$GITIGNORE_FILE" << EOF
 
 # ===========================================
 # TEMPORARY AND CACHE FILES
@@ -247,11 +268,11 @@ temp/
 tmp/
 
 EOF
-fi
+    fi
 
-# Add environment-specific rules if found
-if ! extract_section "ENVIRONMENT-SPECIFIC FILES" | grep -q "No.*found"; then
-    cat >> "$GITIGNORE_FILE" << EOF
+    # Add environment-specific rules if found
+    if ! extract_section "ENVIRONMENT-SPECIFIC FILES" | grep -q "No.*found"; then
+        cat >> "$GITIGNORE_FILE" << EOF
 
 # ===========================================
 # ENVIRONMENT-SPECIFIC FILES
@@ -266,11 +287,11 @@ desktop.ini
 .jetson/
 
 EOF
-fi
+    fi
 
-# Add build artifact rules if found
-if ! extract_section "BUILD ARTIFACTS" | grep -q "No.*found"; then
-    cat >> "$GITIGNORE_FILE" << EOF
+    # Add build artifact rules if found
+    if ! extract_section "BUILD ARTIFACTS" | grep -q "No.*found"; then
+        cat >> "$GITIGNORE_FILE" << EOF
 
 # ===========================================
 # BUILD ARTIFACTS
@@ -286,11 +307,11 @@ test_results/
 .envrc
 
 EOF
-fi
+    fi
 
-# Add IDE rules if found
-if ! extract_section "IDE AND EDITOR FILES" | grep -q "No.*found"; then
-    cat >> "$GITIGNORE_FILE" << EOF
+    # Add IDE rules if found
+    if ! extract_section "IDE AND EDITOR FILES" | grep -q "No.*found"; then
+        cat >> "$GITIGNORE_FILE" << EOF
 
 # ===========================================
 # IDE AND EDITOR FILES
@@ -303,10 +324,10 @@ if ! extract_section "IDE AND EDITOR FILES" | grep -q "No.*found"; then
 .emacs
 
 EOF
-fi
+    fi
 
-# Add standard recommendations
-cat >> "$GITIGNORE_FILE" << EOF
+    # Add standard recommendations
+    cat >> "$GITIGNORE_FILE" << EOF
 
 # ===========================================
 # STANDARD RECOMMENDATIONS
@@ -339,30 +360,33 @@ Thumbs.db
 
 EOF
 
-# Final summary in analysis file
-{
-    echo "=== SUMMARY ==="
-    echo "Analysis completed for: $HOSTNAME"
-    echo "Total .gitignore rules generated: $(wc -l < "$GITIGNORE_FILE")"
-    echo "Gitignore file: $GITIGNORE_FILE"
-    echo ""
-    echo "NEXT STEPS:"
-    echo "1. Review the generated .gitignore file"
-    echo "2. Test with: git check-ignore <file>"
-    echo "3. Apply to repository: cp $GITIGNORE_FILE .gitignore"
-    echo "4. Commit changes: git add .gitignore && git commit -m 'Add evidence-based .gitignore'"
-    echo ""
-} >> "$ANALYSIS_FILE"
+    # Final summary in analysis file
+    {
+        echo "=== SUMMARY ==="
+        echo "Analysis completed for: $HOSTNAME"
+        echo "Total .gitignore rules generated: $(wc -l < "$GITIGNORE_FILE")"
+        echo "Gitignore file: $GITIGNORE_FILE"
+        echo ""
+        echo "NEXT STEPS:"
+        echo "1. Review the generated .gitignore file"
+        echo "2. Test with: git check-ignore <file>"
+        echo "3. Apply to repository: cp $GITIGNORE_FILE .gitignore"
+        echo "4. Commit changes: git add .gitignore && git commit -m 'Add evidence-based .gitignore'"
+        echo ""
+    } >> "$ANALYSIS_FILE"
 
-print_success "Evidence analysis completed!"
-print_success "Analysis saved to: $ANALYSIS_FILE"
-print_success "Gitignore recommendations: $GITIGNORE_FILE"
+    print_success "Evidence analysis completed!"
+    print_success "Analysis saved to: $ANALYSIS_FILE"
+    print_success "Gitignore recommendations: $GITIGNORE_FILE"
 
-# Show preview
-print_status "Generated .gitignore preview (first 20 lines):"
-echo "----------------------------------------"
-head -20 "$GITIGNORE_FILE"
-echo "----------------------------------------"
+    # Show preview
+    print_status "Generated .gitignore preview (first 20 lines):"
+    echo "----------------------------------------"
+    head -20 "$GITIGNORE_FILE"
+    echo "----------------------------------------"
 
-print_success "To view full analysis: cat $ANALYSIS_FILE"
-print_success "To view generated .gitignore: cat $GITIGNORE_FILE"
+    print_success "To view full analysis: cat $ANALYSIS_FILE"
+    print_success "To view generated .gitignore: cat $GITIGNORE_FILE"
+}
+
+main "$@"
