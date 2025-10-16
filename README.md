@@ -281,5 +281,3 @@ MIT License - see [LICENSE](LICENSE) for details.
 BMAD™ and BMAD-METHOD™ are trademarks of BMad Code, LLC. All rights reserved.
 
 [![Contributors](https://contrib.rocks/image?repo=bmad-code-org/BMAD-METHOD)](https://github.com/bmad-code-org/BMAD-METHOD/graphs/contributors)
-
-<sub>Built with ❤️ for the human-AI collaboration community</sub>

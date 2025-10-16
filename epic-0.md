@@ -8,6 +8,8 @@
 
 ---
 
+## Stories
+
 ### Story 0.0: Spike: DLA Compatibility and Performance Validation
 
 **Title**: Spike: DLA Compatibility and Performance Validation
@@ -33,12 +35,12 @@ This investigation will be conducted on a physical Jetson Orin Nano device using
 - **ONNX-GraphSurgeon**: For modifying the ONNX graph to replace incompatible layers.
 - **TensorRT Python API**: For programmatic engine building and management.
 
-**Phase 1: Foundational Feasibility (Go/No-Go)**
+#### Phase 1: Foundational Feasibility (Go/No-Go)
 
-1.  **Verify DLA Hardware Accessibility**: Confirm the DLA is visible and accessible by running a known-compatible model with `trtexec --useDLACore=0`.
-2.  **Analyze "Out-of-the-Box" Compatibility**: Isolate the `PrismaticVisionBackbone`, export to ONNX, and use `trtexec --verbose` to determine the percentage of the model that is automatically offloaded to the DLA.
-3.  **Identify Fallback Operators**: Create a definitive list of all layers/operators that are not supported by the DLA and fall back to the GPU.
-4.  **Confirm Precision Constraints**: Validate the DLA's supported precisions (INT8, FP16) against the project's quantization targets (FP8, INT4) using `trtexec` and official documentation.
+1. **Verify DLA Hardware Accessibility**: Confirm the DLA is visible and accessible by running a known-compatible model with `trtexec --useDLACore=0`.
+2. **Analyze "Out-of-the-Box" Compatibility**: Isolate the `PrismaticVisionBackbone`, export to ONNX, and use `trtexec --verbose` to determine the percentage of the model that is automatically offloaded to the DLA.
+3. **Identify Fallback Operators**: Create a definitive list of all layers/operators that are not supported by the DLA and fall back to the GPU.
+4. **Confirm Precision Constraints**: Validate the DLA's supported precisions (INT8, FP16) against the project's quantization targets (FP8, INT4) using `trtexec` and official documentation.
 
 **Phase 2: Quantitative Performance Analysis** 5. **Measure Performance Uplift**: Benchmark latency and throughput in three modes: GPU-only, DLA with GPU Fallback, and DLA-only. 6. **Validate True Concurrency**: Use Nsight Systems (`nsys`) to profile a test script running the DLA `VisionBackbone` and a separate GPU kernel simultaneously. Analyze the timeline to confirm overlapping execution. 7. **Assess Power and Thermal Impact**: Log `tegrastats` during a sustained run to compare power draw and temperatures of a DLA-enabled pipeline vs. a GPU-only pipeline. 8. **Measure Accuracy Impact**: Compare the output tensors of the DLA-offloaded `VisionBackbone` to a golden set from a GPU FP32 run. Feed the DLA features into the full pipeline to measure the end-to-end accuracy impact.
 

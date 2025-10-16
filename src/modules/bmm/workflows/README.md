@@ -18,7 +18,7 @@ The BMM (BMAD Method Module) orchestrates software development through four dist
 
 ## The Four Phases
 
-```
+```text
 ┌──────────────────────────────────────────────────────────────┐
 │                    PHASE 1: ANALYSIS                         │
 │                      (Optional)                              │
@@ -114,7 +114,7 @@ Optional workflows for project discovery and requirements gathering. Output feed
 
 ### Flow
 
-```
+```text
 workflow-status (check) → Brainstorming → Research → Brief → Planning (Phase 2)
 ```
 
@@ -200,7 +200,7 @@ workflow-status determines routing:
 
 Architecture and technical design phase for complex projects.
 
-### Workflows
+### Phase 3 Workflows
 
 | Workflow          | Owner     | Purpose                        | Output                             | Timing            |
 | ----------------- | --------- | ------------------------------ | ---------------------------------- | ----------------- |
@@ -209,7 +209,7 @@ Architecture and technical design phase for complex projects.
 
 ### Just-In-Time Tech Specs
 
-```
+```text
 FOR each epic in sequence:
     WHEN ready to implement epic:
         Architect: Run tech-spec workflow for THIS epic only
@@ -229,7 +229,7 @@ The core development cycle that transforms requirements into working software.
 
 Phase 4 uses a 4-state lifecycle to manage story progression, tracked in `bmm-workflow-status.md`:
 
-```
+```text
 BACKLOG → TODO → IN PROGRESS → DONE
 ```
 
@@ -257,7 +257,7 @@ BACKLOG → TODO → IN PROGRESS → DONE
 
 ### The Implementation Loop
 
-```
+```text
 Phase Transition (Phase 2 or 3 → Phase 4)
   ↓
 ┌─────────────────────────────────────────────────┐
@@ -328,7 +328,7 @@ Phase Transition (Phase 2 or 3 → Phase 4)
 
 Stories have a `Status:` field in their markdown file that reflects their position in the state machine:
 
-```
+```text
 Status: Draft       (Story created by create-story, awaiting user review)
   ↓
 Status: Ready       (User approved via story-ready, ready for implementation)
@@ -357,7 +357,7 @@ Status: Done        (User approved via story-approved, DoD complete)
 
 ### Brownfield Projects
 
-```
+```text
 plan-project (Phase 2)
     ├─→ Check: Is existing codebase documented?
     │   ├─→ YES: Proceed with planning
