@@ -1,0 +1,5 @@
+project_name: "BMAD-METHOD"
+user_name: ""
+communication_language: "en"
+output_folder: "bmad/docs"
+description: "Configuration for the bmm module. Added by import of cipher artifacts. Adjust values as needed."

@@ -1,0 +1,14 @@
+# Cipher: store-memory
+
+This workflow writes a memory entry into the Cipher memory store.
+
+Usage
+-----
+
+1. Provide the text to store via the `--knowledgeInfo` or `--context` input parameter.
+2. Execute the workflow through the BMAD runtime or via the CipherScribe agent menu.
+
+Notes
+-----
+
+- This is a placeholder file created during import. Replace contents with the canonical instructions used by `isaac_ros_custom` if available.

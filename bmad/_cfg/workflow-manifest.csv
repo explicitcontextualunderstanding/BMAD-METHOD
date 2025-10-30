@@ -13,3 +13,5 @@ name,description,module,path,standalone
 "redoc","Autonomous documentation system that maintains module, workflow, and agent documentation using a reverse-tree approach (leaf folders first, then parents). Understands BMAD conventions and produces technical writer quality output.","bmb","bmad/bmb/workflows/redoc/workflow.yaml","true"
 "brainstorming","Facilitate interactive brainstorming sessions using diverse creative techniques. This workflow facilitates interactive brainstorming sessions using diverse creative techniques. The session is highly interactive, with the AI acting as a facilitator to guide the user through various ideation methods to generate and refine creative solutions.","core","bmad/core/workflows/brainstorming/workflow.yaml","false"
 "party-mode","Orchestrates group discussions between all installed BMAD agents, enabling natural multi-agent conversations","core","bmad/core/workflows/party-mode/workflow.yaml","false"
+
+"cipher-store-memory","Store small pieces of information into the Cipher memory store.","bmm","bmad/bmm/workflows/cipher/store-memory/workflow.yaml","true"

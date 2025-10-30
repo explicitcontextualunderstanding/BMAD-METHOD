@@ -1,0 +1,9 @@
+name: store-memory
+description: "Store memory entries into the Cipher memory store. Simple placeholder implementation added during import."
+module: bmm
+steps:
+  - id: record
+    name: record-memory
+    action: write
+    description: "Record provided text into the cipher memory store. This is a placeholder workflow; replace with concrete steps for your runtime."
+    params: {}
