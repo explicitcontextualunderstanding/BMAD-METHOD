@@ -1,6 +1,7 @@
 const path = require('node:path');
 const { BaseIdeSetup } = require('./_base-ide');
 const chalk = require('chalk');
+const { getAgentsFromBmad, getTasksFromBmad } = require('./shared/bmad-artifacts');
 
 /**
  * Qwen Code setup handler
@@ -11,7 +12,7 @@ class QwenSetup extends BaseIdeSetup {
     super('qwen', 'Qwen Code');
     this.configDir = '.qwen';
     this.commandsDir = 'commands';
-    this.bmadDir = 'BMad';
+    this.bmadDir = 'bmad';
   }
 
   /**
@@ -27,11 +28,8 @@ class QwenSetup extends BaseIdeSetup {
     const qwenDir = path.join(projectDir, this.configDir);
     const commandsDir = path.join(qwenDir, this.commandsDir);
     const bmadCommandsDir = path.join(commandsDir, this.bmadDir);
-    const agentsDir = path.join(bmadCommandsDir, 'agents');
-    const tasksDir = path.join(bmadCommandsDir, 'tasks');
 
-    await this.ensureDir(agentsDir);
-    await this.ensureDir(tasksDir);
+    await this.ensureDir(bmadCommandsDir);
 
     // Update existing settings.json if present
     await this.updateSettings(qwenDir);
@@ -39,74 +37,101 @@ class QwenSetup extends BaseIdeSetup {
     // Clean up old configuration if exists
     await this.cleanupOldConfig(qwenDir);
 
-    // Get agents and tasks
-    const agents = await this.getAgents(bmadDir);
-    const tasks = await this.getTasks(bmadDir);
+    // Get agents, tasks, tools, and workflows (standalone only for tools/workflows)
+    const agents = await getAgentsFromBmad(bmadDir, options.selectedModules || []);
+    const tasks = await getTasksFromBmad(bmadDir, options.selectedModules || []);
+    const tools = await this.getTools(bmadDir, true);
+    const workflows = await this.getWorkflows(bmadDir, true);
+
+    // Create directories for each module (including standalone)
+    const modules = new Set();
+    for (const item of [...agents, ...tasks, ...tools, ...workflows]) modules.add(item.module);
+
+    for (const module of modules) {
+      await this.ensureDir(path.join(bmadCommandsDir, module));
+      await this.ensureDir(path.join(bmadCommandsDir, module, 'agents'));
+      await this.ensureDir(path.join(bmadCommandsDir, module, 'tasks'));
+      await this.ensureDir(path.join(bmadCommandsDir, module, 'tools'));
+      await this.ensureDir(path.join(bmadCommandsDir, module, 'workflows'));
+    }
 
     // Create TOML files for each agent
     let agentCount = 0;
     for (const agent of agents) {
-      const content = await this.readFile(agent.path);
-      const tomlContent = this.createAgentToml(agent, content, projectDir);
-      const tomlPath = path.join(agentsDir, `${agent.name}.toml`);
-      await this.writeFile(tomlPath, tomlContent);
+      const content = await this.readAndProcess(agent.path, {
+        module: agent.module,
+        name: agent.name,
+      });
+
+      const targetPath = path.join(bmadCommandsDir, agent.module, 'agents', `${agent.name}.toml`);
+
+      await this.writeFile(targetPath, content);
+
       agentCount++;
-      console.log(chalk.green(`  ✓ Added agent: /BMad:agents:${agent.name}`));
+      console.log(chalk.green(`  ✓ Added agent: /bmad:${agent.module}:agents:${agent.name}`));
     }
 
     // Create TOML files for each task
     let taskCount = 0;
     for (const task of tasks) {
-      const content = await this.readFile(task.path);
-      const tomlContent = this.createTaskToml(task, content, projectDir);
-      const tomlPath = path.join(tasksDir, `${task.name}.toml`);
-      await this.writeFile(tomlPath, tomlContent);
+      const content = await this.readAndProcess(task.path, {
+        module: task.module,
+        name: task.name,
+      });
+
+      const targetPath = path.join(bmadCommandsDir, task.module, 'tasks', `${task.name}.toml`);
+
+      await this.writeFile(targetPath, content);
+
       taskCount++;
-      console.log(chalk.green(`  ✓ Added task: /BMad:tasks:${task.name}`));
+      console.log(chalk.green(`  ✓ Added task: /bmad:${task.module}:tasks:${task.name}`));
     }
 
-    // Create concatenated QWEN.md for reference
-    let concatenatedContent = `# BMAD Method - Qwen Code Configuration
+    // Create TOML files for each tool
+    let toolCount = 0;
+    for (const tool of tools) {
+      const content = await this.readAndProcess(tool.path, {
+        module: tool.module,
+        name: tool.name,
+      });
 
-This file contains all BMAD agents and tasks configured for use with Qwen Code.
+      const targetPath = path.join(bmadCommandsDir, tool.module, 'tools', `${tool.name}.toml`);
 
-## Agents
-Agents can be activated using: \`/BMad:agents:<agent-name>\`
+      await this.writeFile(targetPath, content);
 
-## Tasks
-Tasks can be executed using: \`/BMad:tasks:<task-name>\`
-
----
-
-`;
-
-    for (const agent of agents) {
-      const content = await this.readFile(agent.path);
-      const agentSection = this.createAgentSection(agent, content, projectDir);
-      concatenatedContent += agentSection;
-      concatenatedContent += '\n\n---\n\n';
+      toolCount++;
+      console.log(chalk.green(`  ✓ Added tool: /bmad:${tool.module}:tools:${tool.name}`));
     }
 
-    for (const task of tasks) {
-      const content = await this.readFile(task.path);
-      const taskSection = this.createTaskSection(task, content, projectDir);
-      concatenatedContent += taskSection;
-      concatenatedContent += '\n\n---\n\n';
-    }
+    // Create TOML files for each workflow
+    let workflowCount = 0;
+    for (const workflow of workflows) {
+      const content = await this.readAndProcess(workflow.path, {
+        module: workflow.module,
+        name: workflow.name,
+      });
 
-    const qwenMdPath = path.join(bmadCommandsDir, 'QWEN.md');
-    await this.writeFile(qwenMdPath, concatenatedContent);
+      const targetPath = path.join(bmadCommandsDir, workflow.module, 'workflows', `${workflow.name}.toml`);
+
+      await this.writeFile(targetPath, content);
+
+      workflowCount++;
+      console.log(chalk.green(`  ✓ Added workflow: /bmad:${workflow.module}:workflows:${workflow.name}`));
+    }
 
     console.log(chalk.green(`✓ ${this.name} configured:`));
     console.log(chalk.dim(`  - ${agentCount} agents configured`));
     console.log(chalk.dim(`  - ${taskCount} tasks configured`));
-    console.log(chalk.dim(`  - Agents activated with: /BMad:agents:<agent-name>`));
-    console.log(chalk.dim(`  - Tasks activated with: /BMad:tasks:<task-name>`));
+    console.log(chalk.dim(`  - ${toolCount} tools configured`));
+    console.log(chalk.dim(`  - ${workflowCount} workflows configured`));
+    console.log(chalk.dim(`  - Commands directory: ${path.relative(projectDir, bmadCommandsDir)}`));
 
     return {
       success: true,
       agents: agentCount,
       tasks: taskCount,
+      tools: toolCount,
+      workflows: workflowCount,
     };
   }
 
@@ -152,6 +177,7 @@ Tasks can be executed using: \`/BMad:tasks:<task-name>\`
     const fs = require('fs-extra');
     const agentsDir = path.join(qwenDir, 'agents');
     const bmadMethodDir = path.join(qwenDir, 'bmad-method');
+    const bmadDir = path.join(qwenDir, 'bmadDir');
 
     if (await fs.pathExists(agentsDir)) {
       await fs.remove(agentsDir);
@@ -162,135 +188,67 @@ Tasks can be executed using: \`/BMad:tasks:<task-name>\`
       await fs.remove(bmadMethodDir);
       console.log(chalk.green('  ✓ Removed old bmad-method directory'));
     }
+
+    if (await fs.pathExists(bmadDir)) {
+      await fs.remove(bmadDir);
+      console.log(chalk.green('  ✓ Removed old BMad directory'));
+    }
   }
 
   /**
-   * Create TOML file for agent
+   * Read and process file content
    */
-  createAgentToml(agent, content, projectDir) {
-    const titleMatch = content.match(/title="([^"]+)"/);
-    const title = titleMatch ? titleMatch[1] : this.formatTitle(agent.name);
-    const yamlMatch = content.match(/```ya?ml\r?\n([\s\S]*?)```/);
-    const yamlContent = yamlMatch ? yamlMatch[1] : content;
-    const relativePath = path.relative(projectDir, agent.path).replaceAll('\\', '/');
-
-    return `# ${title} Agent
-name = "${agent.name}"
-description = """
-${title} agent from BMAD ${agent.module.toUpperCase()} module.
-
-CRITICAL: Read the full YAML, start activation to alter your state of being, follow startup section instructions, stay in this being until told to exit this mode:
-
-\`\`\`yaml
-${yamlContent}
-\`\`\`
-
-File: ${relativePath}
-"""`;
+  async readAndProcess(filePath, metadata) {
+    const fs = require('fs-extra');
+    const content = await fs.readFile(filePath, 'utf8');
+    return this.processContent(content, metadata);
   }
 
   /**
-   * Create TOML file for task
+   * Override processContent to add TOML metadata header for Qwen
+   * @param {string} content - File content
+   * @param {Object} metadata - File metadata
+   * @returns {string} Processed content with Qwen template
    */
-  createTaskToml(task, content, projectDir) {
-    const titleMatch = content.match(/title="([^"]+)"/);
-    const title = titleMatch ? titleMatch[1] : this.formatTitle(task.name);
-    const yamlMatch = content.match(/```ya?ml\r?\n([\s\S]*?)```/);
-    const yamlContent = yamlMatch ? yamlMatch[1] : content;
-    const relativePath = path.relative(projectDir, task.path).replaceAll('\\', '/');
+  processContent(content, metadata = {}) {
+    // First apply base processing (includes activation injection for agents)
+    let prompt = super.processContent(content, metadata);
 
-    return `# ${title} Task
-name = "${task.name}"
-description = """
-${title} task from BMAD ${task.module.toUpperCase()} module.
+    // Determine the type and description based on content
+    const isAgent = content.includes('<agent');
+    const isTask = content.includes('<task');
+    const isTool = content.includes('<tool');
+    const isWorkflow = content.includes('workflow:') || content.includes('name:');
 
-Execute this task by following the instructions in the YAML configuration:
+    let description = '';
 
-\`\`\`yaml
-${yamlContent}
-\`\`\`
+    if (isAgent) {
+      // Extract agent title if available
+      const titleMatch = content.match(/title="([^"]+)"/);
+      const title = titleMatch ? titleMatch[1] : metadata.name;
+      description = `BMAD ${metadata.module.toUpperCase()} Agent: ${title}`;
+    } else if (isTask) {
+      // Extract task name if available
+      const nameMatch = content.match(/name="([^"]+)"/);
+      const taskName = nameMatch ? nameMatch[1] : metadata.name;
+      description = `BMAD ${metadata.module.toUpperCase()} Task: ${taskName}`;
+    } else if (isTool) {
+      // Extract tool name if available
+      const nameMatch = content.match(/name="([^"]+)"/);
+      const toolName = nameMatch ? nameMatch[1] : metadata.name;
+      description = `BMAD ${metadata.module.toUpperCase()} Tool: ${toolName}`;
+    } else if (isWorkflow) {
+      // Workflow
+      description = `BMAD ${metadata.module.toUpperCase()} Workflow: ${metadata.name}`;
+    } else {
+      description = `BMAD ${metadata.module.toUpperCase()}: ${metadata.name}`;
+    }
 
-File: ${relativePath}
-"""`;
-  }
-
-  /**
-   * Create agent section for concatenated file
-   */
-  createAgentSection(agent, content, projectDir) {
-    // Extract metadata
-    const titleMatch = content.match(/title="([^"]+)"/);
-    const title = titleMatch ? titleMatch[1] : this.formatTitle(agent.name);
-
-    // Extract YAML content
-    const yamlMatch = content.match(/```ya?ml\r?\n([\s\S]*?)```/);
-    const yamlContent = yamlMatch ? yamlMatch[1] : content;
-
-    // Get relative path
-    const relativePath = path.relative(projectDir, agent.path).replaceAll('\\', '/');
-
-    let section = `# ${agent.name.toUpperCase()} Agent Rule
-
-This rule is triggered when the user types \`/BMad:agents:${agent.name}\` and activates the ${title} agent persona.
-
-## Agent Activation
-
-CRITICAL: Read the full YAML, start activation to alter your state of being, follow startup section instructions, stay in this being until told to exit this mode:
-
-\`\`\`yaml
-${yamlContent}
-\`\`\`
-
-## File Reference
-
-The complete agent definition is available in [${relativePath}](${relativePath}).
-
-## Usage
-
-When the user types \`/BMad:agents:${agent.name}\`, activate this ${title} persona and follow all instructions defined in the YAML configuration above.
-
-## Module
-
-Part of the BMAD ${agent.module.toUpperCase()} module.`;
-
-    return section;
-  }
-
-  /**
-   * Create task section for concatenated file
-   */
-  createTaskSection(task, content, projectDir) {
-    const titleMatch = content.match(/title="([^"]+)"/);
-    const title = titleMatch ? titleMatch[1] : this.formatTitle(task.name);
-    const yamlMatch = content.match(/```ya?ml\r?\n([\s\S]*?)```/);
-    const yamlContent = yamlMatch ? yamlMatch[1] : content;
-    const relativePath = path.relative(projectDir, task.path).replaceAll('\\', '/');
-
-    let section = `# ${task.name.toUpperCase()} Task
-
-This task is triggered when the user types \`/BMad:tasks:${task.name}\` and executes the ${title} task.
-
-## Task Execution
-
-Execute this task by following the instructions in the YAML configuration:
-
-\`\`\`yaml
-${yamlContent}
-\`\`\`
-
-## File Reference
-
-The complete task definition is available in [${relativePath}](${relativePath}).
-
-## Usage
-
-When the user types \`/BMad:tasks:${task.name}\`, execute this ${title} task and follow all instructions defined in the YAML configuration above.
-
-## Module
-
-Part of the BMAD ${task.module.toUpperCase()} module.`;
-
-    return section;
+    return `description = "${description}"
+prompt = """
+${prompt}
+"""
+`;
   }
 
   /**
@@ -310,6 +268,7 @@ Part of the BMAD ${task.module.toUpperCase()} module.`;
     const fs = require('fs-extra');
     const bmadCommandsDir = path.join(projectDir, this.configDir, this.commandsDir, this.bmadDir);
     const oldBmadMethodDir = path.join(projectDir, this.configDir, 'bmad-method');
+    const oldBMadDir = path.join(projectDir, this.configDir, 'BMad');
 
     if (await fs.pathExists(bmadCommandsDir)) {
       await fs.remove(bmadCommandsDir);
@@ -318,6 +277,11 @@ Part of the BMAD ${task.module.toUpperCase()} module.`;
 
     if (await fs.pathExists(oldBmadMethodDir)) {
       await fs.remove(oldBmadMethodDir);
+      console.log(chalk.dim(`Removed old BMAD configuration from Qwen Code`));
+    }
+
+    if (await fs.pathExists(oldBMadDir)) {
+      await fs.remove(oldBMadDir);
       console.log(chalk.dim(`Removed old BMAD configuration from Qwen Code`));
     }
   }

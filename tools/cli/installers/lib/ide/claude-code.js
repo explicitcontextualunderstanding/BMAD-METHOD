@@ -3,13 +3,14 @@ const { BaseIdeSetup } = require('./_base-ide');
 const chalk = require('chalk');
 const { getProjectRoot, getSourcePath, getModulePath } = require('../../../lib/project-root');
 const { WorkflowCommandGenerator } = require('./workflow-command-generator');
+const { TaskToolCommandGenerator } = require('./task-tool-command-generator');
 const {
   loadModuleInjectionConfig,
   shouldApplyInjection,
   filterAgentInstructions,
   resolveSubagentFiles,
 } = require('./shared/module-injections');
-const { getAgentsFromBmad, getTasksFromBmad, getAgentsFromDir, getTasksFromDir } = require('./shared/bmad-artifacts');
+const { getAgentsFromBmad, getAgentsFromDir } = require('./shared/bmad-artifacts');
 
 /**
  * Claude Code IDE setup handler
@@ -99,19 +100,17 @@ class ClaudeCodeSetup extends BaseIdeSetup {
 
     await this.ensureDir(bmadCommandsDir);
 
-    // Get agents and tasks from INSTALLED bmad/ directory
+    // Get agents from INSTALLED bmad/ directory
     // Base installer has already built .md files from .agent.yaml sources
     const agents = await getAgentsFromBmad(bmadDir, options.selectedModules || []);
-    const tasks = await getTasksFromBmad(bmadDir, options.selectedModules || []);
 
     // Create directories for each module (including standalone)
     const modules = new Set();
-    for (const item of [...agents, ...tasks]) modules.add(item.module);
+    for (const item of agents) modules.add(item.module);
 
     for (const module of modules) {
       await this.ensureDir(path.join(bmadCommandsDir, module));
       await this.ensureDir(path.join(bmadCommandsDir, module, 'agents'));
-      await this.ensureDir(path.join(bmadCommandsDir, module, 'tasks'));
     }
 
     // Copy agents from bmad/ to .claude/commands/
@@ -129,24 +128,13 @@ class ClaudeCodeSetup extends BaseIdeSetup {
       agentCount++;
     }
 
-    // Copy tasks from bmad/ to .claude/commands/
-    let taskCount = 0;
-    for (const task of tasks) {
-      const sourcePath = task.path;
-      const targetPath = path.join(bmadCommandsDir, task.module, 'tasks', `${task.name}.md`);
-
-      const content = await this.readAndProcess(sourcePath, {
-        module: task.module,
-        name: task.name,
-      });
-
-      await this.writeFile(targetPath, content);
-      taskCount++;
-    }
-
     // Process Claude Code specific injections for installed modules
-    // Use pre-collected configuration if available
-    if (options.preCollectedConfig) {
+    // Use pre-collected configuration if available, or skip if already configured
+    if (options.preCollectedConfig && options.preCollectedConfig._alreadyConfigured) {
+      // IDE is already configured from previous installation, skip prompting
+      // Just process with default/existing configuration
+      await this.processModuleInjectionsWithConfig(projectDir, bmadDir, options, {});
+    } else if (options.preCollectedConfig) {
       await this.processModuleInjectionsWithConfig(projectDir, bmadDir, options, options.preCollectedConfig);
     } else {
       await this.processModuleInjections(projectDir, bmadDir, options);
@@ -159,18 +147,27 @@ class ClaudeCodeSetup extends BaseIdeSetup {
     const workflowGen = new WorkflowCommandGenerator();
     const workflowResult = await workflowGen.generateWorkflowCommands(projectDir, bmadDir);
 
+    // Generate task and tool commands from manifests (if they exist)
+    const taskToolGen = new TaskToolCommandGenerator();
+    const taskToolResult = await taskToolGen.generateTaskToolCommands(projectDir, bmadDir);
+
     console.log(chalk.green(`✓ ${this.name} configured:`));
     console.log(chalk.dim(`  - ${agentCount} agents installed`));
-    console.log(chalk.dim(`  - ${taskCount} tasks installed`));
     if (workflowResult.generated > 0) {
       console.log(chalk.dim(`  - ${workflowResult.generated} workflow commands generated`));
+    }
+    if (taskToolResult.generated > 0) {
+      console.log(
+        chalk.dim(
+          `  - ${taskToolResult.generated} task/tool commands generated (${taskToolResult.tasks} tasks, ${taskToolResult.tools} tools)`,
+        ),
+      );
     }
     console.log(chalk.dim(`  - Commands directory: ${path.relative(projectDir, bmadCommandsDir)}`));
 
     return {
       success: true,
       agents: agentCount,
-      tasks: taskCount,
     };
   }
 
