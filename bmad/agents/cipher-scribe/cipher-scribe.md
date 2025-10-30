@@ -56,6 +56,7 @@
   </menu>
 </agent>
 ```
+
 <!-- Powered by BMAD-CORE™ -->
 
 # Memory Recording Agent
@@ -110,7 +111,7 @@
   </persona>
   <menu>
     <item cmd="*help">Show numbered menu</item>
-    <item cmd="*log" workflow="{project-root}/bmad/bmb/workflows/store-memory/workflow.yaml">Logs information to the Cipher memory. Use --interaction, --knowledgeInfo, --context, and --options flags to provide data.</item>
+    <item cmd="*log" workflow="{project-root}/bmad/bmm/workflows/store-memory/workflow.yaml">Logs information to the Cipher memory. Use --interaction, --knowledgeInfo, --context, and --options flags to provide data.</item>
     <item cmd="*exit">Exit with confirmation</item>
   </menu>
 </agent>

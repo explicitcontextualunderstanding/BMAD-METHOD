@@ -1,0 +1,30 @@
+# store-memory Workflow Configuration
+name: "store-memory"
+description: "A simple workflow to store information in Cipher MCP memory."
+author: "Gemini"
+
+config_source: "{project-root}/bmad/bmm/config.yaml"
+user_name: "{config_source}:user_name"
+date: system-generated
+
+installed_path: "{project-root}/bmad/bmm/workflows/store-memory"
+instructions: "{installed_path}/instructions.md"
+
+required_tools:
+  - "mcp__cipher-mcp__cipher_extract_and_operate_memory":
+      description: "The Cipher MCP tool for writing to memory."
+      link: "https://docs.cipher-mcp.com/tools/extract_and_operate_memory"
+
+inputs:
+  - name: "interaction"
+    description: "The main text content to be stored in memory."
+    required: true
+  - name: "knowledgeInfo"
+    description: "JSON string with domain and pattern information."
+    required: true
+  - name: "context"
+    description: "JSON string providing context for the memory entry."
+    required: false
+  - name: "options"
+    description: "JSON string with options for the memory operation."
+    required: false
