@@ -90,5 +90,15 @@
   "[xml]": {
     "editor.defaultFormatter": "redhat.vscode-xml"
   },
-  "xml.format.maxLineWidth": 140
+  "xml.format.maxLineWidth": 140,
+  "mcpServers": {
+    "filesystem-with-morph": {
+      "command": "npx",
+      "args": ["@morph-llm/morph-fast-apply"],
+      "env": {
+        "MORPH_API_KEY": "${MORPH_API_KEY}",
+        "ALL_TOOLS": "false"
+      }
+    }
+  }
 }

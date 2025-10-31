@@ -49,6 +49,14 @@ async function configureForIDE(ide) {
       // Claude Code specific Core configurations
       break;
     }
+    case 'gemini': {
+      // Gemini specific Core configurations
+      break;
+    }
+    case 'github-copilot': {
+      // GitHub Copilot specific Core configurations
+      break;
+    }
     case 'cursor': {
       // Cursor specific Core configurations
       break;
